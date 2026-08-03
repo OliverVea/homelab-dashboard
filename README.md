@@ -53,3 +53,20 @@ the change up within ~5 minutes, or force it with `pl binding reconcile <pipelin
 
 The image is never pushed to a registry — it is imported straight into the node's containerd, which
 is why the chart sets `pullPolicy: Never`.
+
+## A public repo still wants a GitHub token
+
+Counter-intuitive, and it cost a debugging cycle here: binding a pipeline to a **public** repo with
+no credentials secret works, right up until GitHub's **anonymous API rate limit** (60 requests per
+hour, per IP) runs out. Then:
+
+- **the reconcile fails**, not the build: `GitHub returned 403 fetching blob
+  '.pipelines/scripts/verify.sh'`. The pipeline keeps running the **last config it successfully
+  fetched**, so pushing a fix changes nothing and the same failure repeats — which reads exactly
+  like "my fix didn't work" rather than "the server never saw my fix". Check
+  `pl binding status <id>` before re-debugging a script.
+- the build fails too, but with a *different* error: `olve_fetch_repo` always sends
+  `Authorization: token $GITHUB_TOKEN`, and an empty token is a **401**, not anonymous access.
+
+So set `GITHUB_TOKEN` and bind with `--credentials-secret GITHUB_TOKEN` even for a public repo. It
+is not about access, it is about the rate limit — an authenticated token gets 5000 requests/hour.
