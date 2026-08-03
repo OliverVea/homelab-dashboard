@@ -14,7 +14,19 @@ wget --no-check-certificate -qO /tmp/olve-lib.sh \
 VERSION=$(olve_version)
 CTX=/kaniko/build-context
 
-olve_fetch_repo "$REPO" "$BRANCH" "$CTX"
+# NOT olve_fetch_repo: it always sends `Authorization: token $GITHUB_TOKEN`, and with
+# no token set (this repo is public, so the pipeline has no credentials secret) GitHub
+# rejects the empty credential with a 401. Authenticate only when there is something to
+# authenticate with.
+mkdir -p "$CTX"
+cd "$CTX"
+if [ -n "$GITHUB_TOKEN" ]; then
+  wget --no-check-certificate -q --header="Authorization: token $GITHUB_TOKEN"     -O repo.tar.gz "https://api.github.com/repos/$REPO/tarball/$BRANCH"
+else
+  wget --no-check-certificate -q -O repo.tar.gz     "https://api.github.com/repos/$REPO/tarball/$BRANCH"
+fi
+tar xzf repo.tar.gz --strip-components=1
+rm repo.tar.gz
 
 [ -f "$CTX/site/index.html" ] || { echo "site/index.html missing"; exit 1; }
 [ -f "$CTX/Dockerfile" ] || { echo "Dockerfile missing"; exit 1; }
