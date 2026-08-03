@@ -1,0 +1,107 @@
+/* One file, no build step, no framework. If this ever needs a bundler, something
+   has gone wrong with the brief. */
+
+:root {
+  --bg: #fbfbfa;
+  --fg: #1a1a19;
+  --muted: #6b6b66;
+  --card: #ffffff;
+  --line: #e6e6e1;
+  --accent: #3d6b45;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16171a;
+    --fg: #e8e8e6;
+    --muted: #93938d;
+    --card: #1e1f23;
+    --line: #2c2d32;
+    --accent: #8fc79a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 3rem 1.5rem 4rem;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header, main, footer { max-width: 900px; margin: 0 auto; }
+
+h1 {
+  margin: 0 0 .25rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+header p { margin: 0 0 2.5rem; color: var(--muted); }
+
+h2 {
+  margin: 0 0 .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.links { list-style: none; margin: 0; padding: 0; }
+
+.links li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: .6rem .8rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: .4rem;
+}
+
+.links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.links a:hover { text-decoration: underline; }
+
+.links span {
+  color: var(--muted);
+  font-size: .8rem;
+  text-align: right;
+}
+
+/* Not everything is clickable: the Minecraft server is raw TCP. */
+.links .plain {
+  color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .85rem;
+  text-align: left;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .9em;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .8rem;
+}

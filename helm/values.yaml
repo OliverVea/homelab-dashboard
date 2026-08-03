@@ -1,0 +1,36 @@
+# A static page on nginx. Nothing here is stateful; the whole thing is disposable
+# and rebuilt from git on every deploy.
+image:
+  # Overridden by the deploy step, which imports a locally-built image into the
+  # node's containerd rather than pushing to a registry.
+  repository: docker.io/library/homelab-dashboard
+  tag: latest
+  pullPolicy: Never
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Static HTML needs almost nothing. These are deliberately small: this pod shares a
+# node with a Minecraft server, and the dashboard should never be the reason
+# something else gets evicted.
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    memory: 64Mi
+
+ingress:
+  enabled: true
+  className: traefik
+  host: home-private.ovea.pro
+  tls:
+    enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Tailscale address, matching the other *-private.ovea.pro services. Not
+    # exposed to the public internet.
+    external-dns.alpha.kubernetes.io/target: 100.100.117.17
