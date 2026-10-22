@@ -1,4 +1,4 @@
-// Every push goes beta, then prod. config.yaml beside it is the paused v1 deployer's rollback path.
+// Every push goes beta, then prod. config.yaml beside it is the old v1 config; that pipeline is deleted.
 import { pipeline, secret, step, steps, HelmRelease, Source } from "@olve/pipelines";
 import * as M from "./models";
 

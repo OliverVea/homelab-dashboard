@@ -35,7 +35,7 @@ site/index.html   the page
 site/style.css    the styles
 Dockerfile        nginx:alpine + COPY site/
 helm/             chart: Deployment, Service, Ingress
-.pipelines/       CD on Olve.Pipelines v2 (pipeline.ts); config.yaml is the paused v1 pipeline
+.pipelines/       CD on Olve.Pipelines v2 (pipeline.ts); config.yaml is the old v1 config (its pipeline is deleted)
 ```
 
 ## Editing it
@@ -63,8 +63,8 @@ There is no test suite: the page is static, so the checks prove the right files 
 The image is never pushed to a registry — it is imported straight into the node's containerd, which
 is why the chart sets `pullPolicy: Never`.
 
-Rollback to v1: block `deploy-beta` and `deploy-prod` on v2 (`pl gate block`), then unblock v1's
-`deploy` and `verify` gates.
+To stop deploys, block `deploy-beta` and `deploy-prod` (`pl gate block`). The v1 pipeline is
+deleted; going back to v1 means creating it again from `config.yaml`.
 
 ## A public repo still wants a GitHub token
 
