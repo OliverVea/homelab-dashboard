@@ -35,38 +35,41 @@ site/index.html   the page
 site/style.css    the styles
 Dockerfile        nginx:alpine + COPY site/
 helm/             chart: Deployment, Service, Ingress
-.pipelines/       build (Kaniko) -> deploy -> verify
+.pipelines/       CD on Olve.Pipelines v2 (pipeline.ts); config.yaml is the paused v1 pipeline
 ```
 
 ## Editing it
 
-Edit `site/index.html`, commit, push. The pipeline rebuilds and redeploys; the reconcile poll picks
-the change up within ~5 minutes, or force it with `pl binding reconcile <pipelineId>`.
+Edit `site/index.html`, commit, push to `main`. The push goes all the way to prod on its own: the
+v2 deploy poll picks it up within ~15 minutes, or force it with
+`pl binding reconcile homelab-dashboard`.
 
 ## CD
 
-| Step | Does | Fails when |
+Pipeline `homelab-dashboard` on Olve.Pipelines v2 prod (`.pipelines/pipeline.ts`). Every push to
+`main`:
+
+| Stage | Steps | Fails when |
 |---|---|---|
-| **build** | Kaniko builds the nginx image to a tar, stages the chart and version into the ArtifactBundle | the Dockerfile or `site/index.html` is missing, or the build fails |
-| **deploy** | imports the image tar into the node's k3s containerd, `helm upgrade --install` | the import or the rollout fails |
-| **verify** | `kubectl rollout status`, then fetches the real URL through the ingress and asserts it is **this** page, not a stray 200 | the site does not answer, or answers with someone else's content |
+| 1 | **source** (fetch the commit) ∥ **mirror-base-images** (copy `nginx` into registry.ovea.pro) | GitHub can't be reached |
+| 2 | **build** (kaniko builds the nginx image) ∥ **check** (every local link in the page exists, `helm lint --strict` with beta and prod settings) | the image doesn't build, a linked file is missing, the chart doesn't lint |
+| 3 | **deploy-beta**: imports the image into the node's k3s containerd, `helm upgrade --install` into `apps-beta` (no ingress) | the import or rollout fails |
+| 4 | **beta-test**: beta's Service serves this commit's `index.html` and every file it links, byte for byte | beta serves anything else |
+| 5 | **deploy-prod**: the same image into `apps` | the import or rollout fails |
+| 6 | **prod-test** (read-only): the same check against prod's Service, then `https://home-private.ovea.pro/` through the ingress (pinned to the node's IP, TLS verified) | prod or the ingress serves anything else |
+
+There is no test suite: the page is static, so the checks prove the right files are served.
 
 The image is never pushed to a registry — it is imported straight into the node's containerd, which
 is why the chart sets `pullPolicy: Never`.
 
+Rollback to v1: block `deploy-beta` and `deploy-prod` on v2 (`pl gate block`), then unblock v1's
+`deploy` and `verify` gates.
+
 ## A public repo still wants a GitHub token
 
-Counter-intuitive, and it cost a debugging cycle here: binding a pipeline to a **public** repo with
-no credentials secret works, right up until GitHub's **anonymous API rate limit** (60 requests per
-hour, per IP) runs out. Then:
-
-- **the reconcile fails**, not the build: `GitHub returned 403 fetching blob
-  '.pipelines/scripts/verify.sh'`. The pipeline keeps running the **last config it successfully
-  fetched**, so pushing a fix changes nothing and the same failure repeats — which reads exactly
-  like "my fix didn't work" rather than "the server never saw my fix". Check
-  `pl binding status <id>` before re-debugging a script.
-- the build fails too, but with a *different* error: `olve_fetch_repo` always sends
-  `Authorization: token $GITHUB_TOKEN`, and an empty token is a **401**, not anonymous access.
-
-So set `GITHUB_TOKEN` and bind with `--credentials-secret GITHUB_TOKEN` even for a public repo. It
-is not about access, it is about the rate limit — an authenticated token gets 5000 requests/hour.
+Binding a pipeline to a **public** repo without a token works until GitHub's **anonymous API rate
+limit** (60 requests per hour, per IP, shared by every binding) runs out; then reconciles and source
+fetches fail with 403s. The pipeline keeps the last config it fetched, so a pushed fix seems to do
+nothing — check `pl binding status` before re-debugging a step. So the pipeline has a
+`GITHUB_TOKEN` secret, named as the binding's credentials key, even though the repo is public.
