@@ -1,7 +1,7 @@
 import { join } from "node:path";
-import { implement } from "@olve/pipelines";
+import { implement, serviceUrl } from "@olivervea/pipelines";
 import { prodTest } from "../pipeline";
-import { checkServesTree, ensure, readSite, serviceUrl } from "./lib/site";
+import { checkServesTree, ensure, readSite } from "./lib/site";
 
 const HOST = "home-private.ovea.pro";
 // Public DNS can resolve to another entrypoint from inside the cluster; pin the request to the node's ingress.

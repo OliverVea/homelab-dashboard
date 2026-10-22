@@ -1,15 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Ctx, HelmRelease, Infer } from "@olve/pipelines";
+import type { Ctx } from "@olivervea/pipelines";
 
 export const PAGE = "site/index.html";
 
 export function ensure(ok: boolean, what: string): asserts ok {
   if (!ok) throw new Error(what);
 }
-
-export const serviceUrl = ({ release, namespace }: Infer<typeof HelmRelease>) =>
-  `http://${release}.${namespace}.svc.cluster.local`;
 
 export const readSite = (tree: string, path: string) => readFileSync(join(tree, "site", path), "utf8");
 
