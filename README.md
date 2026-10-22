@@ -51,7 +51,7 @@ Pipeline `homelab-dashboard` on Olve.Pipelines v2 prod (`.pipelines/pipeline.ts`
 
 | Stage | Steps | Fails when |
 |---|---|---|
-| 1 | **source** (fetch the commit) ∥ **mirror-base-images** (copy `nginx` into registry.ovea.pro) | GitHub can't be reached |
+| 1 | **source** (fetch the commit) | GitHub can't be reached |
 | 2 | **build** (kaniko builds the nginx image) ∥ **check** (every local link in the page exists, `helm lint --strict` with beta and prod settings) | the image doesn't build, a linked file is missing, the chart doesn't lint |
 | 3 | **deploy-beta**: imports the image into the node's k3s containerd, `helm upgrade --install` into `apps-beta` (no ingress) | the import or rollout fails |
 | 4 | **beta-test**: beta's Service serves this commit's `index.html` and every file it links, byte for byte | beta serves anything else |

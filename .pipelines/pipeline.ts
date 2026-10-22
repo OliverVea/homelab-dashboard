@@ -5,7 +5,6 @@ import * as M from "./models";
 export const GITHUB_TOKEN = secret("GITHUB_TOKEN", "GitHub read token used to fetch the repo tarball.");
 export const SSH_PRIVATE_KEY = secret("SSH_PRIVATE_KEY", "SSH key for importing the image and running helm on the homelab host.");
 
-export const MIRROR = "registry.ovea.pro/olve-pipelines-v2/mirror";
 // Beta has no ingress: no DNS record or certificate, it is tested through its Service.
 export const BETA_SET = { "ingress.enabled": "false" };
 
@@ -15,18 +14,10 @@ export const source = steps.gitHubSource({
   token: GITHUB_TOKEN,
 });
 
-export const mirrorBaseImages = step({
-  name: "mirror-base-images",
-  description: "Copies the Dockerfile's base image into registry.ovea.pro; kaniko under gVisor can stall pulling upstream.",
-  image: "gcr.io/go-containerregistry/crane:debug",
-  timeoutSeconds: 600,
-});
-
 export const build = steps.imageBuild({
   name: "build",
   description: "Builds the nginx image with the page baked in, with kaniko.",
   repository: "homelab-dashboard",
-  registryMap: { "index.docker.io": `${MIRROR}/docker.io` },
   timeoutSeconds: 900,
 });
 
@@ -85,7 +76,7 @@ export default pipeline({
   input: M.DeployRequest,
 })
   .onPush(e => ({ repo: e.repository.full_name, sha: e.after, deployTo: "prod" }))
-  .stage([source, from => ({ repo: from.input.repo, sha: from.input.sha })], mirrorBaseImages)
+  .stage([source, from => ({ repo: from.input.repo, sha: from.input.sha })])
   .stage(build, check)
   .stage(deployBeta)
   .stage(betaTest)
