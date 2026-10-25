@@ -18,7 +18,7 @@ the information to where it is already known.
 **The right place is Olve.Pipelines.** Every service here is deployed by a pipeline, and that
 pipeline already knows where it put the thing. Two shapes that would work:
 
-- **Declared in the GitOps config** — a `url:` field on a step in `.pipelines/config.yaml`. Simple,
+- **Declared in the GitOps config** — a `url` on a step in `.pipelines/pipeline.ts`. Simple,
   reviewable, versioned with the deployment that owns it. Wrong only if someone forgets to update
   it, which is the same failure mode as here, but at least it lives next to the deploy.
 - **Part of a step's result** — the deploy step *reports* the URL it deployed to, the way it
@@ -35,7 +35,7 @@ site/index.html   the page
 site/style.css    the styles
 Dockerfile        nginx:alpine + COPY site/
 helm/             chart: Deployment, Service, Ingress
-.pipelines/       CD on Olve.Pipelines v2 (pipeline.ts); config.yaml is the old v1 config (its pipeline is deleted)
+.pipelines/       CD on Olve.Pipelines v2 (pipeline.ts)
 ```
 
 ## Editing it
@@ -63,8 +63,8 @@ There is no test suite: the page is static, so the checks prove the right files 
 The image is never pushed to a registry — it is imported straight into the node's containerd, which
 is why the chart sets `pullPolicy: Never`.
 
-To stop deploys, block `deploy-beta` and `deploy-prod` (`pl gate block`). The v1 pipeline is
-deleted; going back to v1 means creating it again from `config.yaml`.
+To stop deploys, block `deploy-beta` and `deploy-prod` (`pl step block`). A run with
+`deployTo=beta` stops after beta-test.
 
 ## A public repo still wants a GitHub token
 

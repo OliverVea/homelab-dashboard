@@ -1,4 +1,4 @@
-// Every push goes beta, then prod. config.yaml beside it is the old v1 config; that pipeline is deleted.
+// Every push goes beta, then prod.
 import { pipeline, secret, step, steps, HelmRelease, Source } from "@olivervea/pipelines";
 import * as M from "./models";
 
