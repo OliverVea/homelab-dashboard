@@ -1,13 +1,18 @@
 import { join } from "node:path";
-import { implement, serviceUrl } from "@olivervea/pipelines";
-import { prodTest } from "../pipeline";
-import { checkServesTree, ensure, readSite } from "./lib/site";
+import { implement, serviceUrl, step, HelmRelease, Source } from "@olivervea/pipelines";
+import { checkServesTree, ensure, readSite } from "../lib/site";
 
 const HOST = "home-private.ovea.pro";
 // Public DNS can resolve to another entrypoint from inside the cluster; pin the request to the node's ingress.
 const INGRESS_IP = "192.168.11.8";
 
-export default implement(prodTest, async ({ source, release }, ctx) => {
+export const prodTest = implement(step({
+  name: "prod-test",
+  description: "Read-only: prod serves this commit's page, through its Service and through the ingress at home-private.ovea.pro.",
+  image: "alpine:3.22",
+  input: { source: Source, release: HelmRelease },
+  timeoutSeconds: 180,
+}), async ({ source, release }, ctx) => {
   const tree = await ctx.files.fetch(source.tree);
   await checkServesTree(ctx, serviceUrl(release), tree);
 

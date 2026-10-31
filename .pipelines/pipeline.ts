@@ -1,35 +1,26 @@
 // Every push goes beta, then prod.
-import { pipeline, secret, step, steps, HelmRelease, Source } from "@olivervea/pipelines";
+import { pipeline, steps } from "@olivervea/pipelines";
 import * as M from "./models";
+import { BETA_SET, GITHUB_TOKEN, REGISTRY_MAP, SSH_PRIVATE_KEY } from "./shared";
+import { betaTest } from "./steps/beta-test";
+import { check } from "./steps/check";
+import { prodTest } from "./steps/prod-test";
 
-export const GITHUB_TOKEN = secret("GITHUB_TOKEN", "GitHub read token used to fetch the repo tarball.");
-export const SSH_PRIVATE_KEY = secret("SSH_PRIVATE_KEY", "SSH key for importing the image and running helm on the homelab host.");
-
-// Beta has no ingress: no DNS record or certificate, it is tested through its Service.
-export const BETA_SET = { "ingress.enabled": "false" };
-
-export const source = steps.gitHubSource({
+const source = steps.gitHubSource({
   name: "source",
   description: "Fetches the pushed commit from GitHub.",
   token: GITHUB_TOKEN,
 });
 
-export const build = steps.imageBuild({
+const build = steps.imageBuild({
   name: "build",
   description: "Builds the nginx image with the page baked in, with kaniko.",
   repository: "homelab-dashboard",
+  registryMap: REGISTRY_MAP,
   timeoutSeconds: 900,
 });
 
-export const check = step({
-  name: "check",
-  description: "Checks every local link in the page exists, then lints the chart (`helm lint --strict`) with the beta and prod settings.",
-  image: "alpine:3.22",
-  input: { source: Source },
-  timeoutSeconds: 300,
-});
-
-export const deployBeta = steps.helmDeployOverSsh({
+const deployBeta = steps.helmDeployOverSsh({
   name: "deploy-beta",
   description: "Deploys the image to apps-beta with Helm, without an ingress, and checks it serves.",
   host: "oliver@bulwark-m2",
@@ -42,15 +33,7 @@ export const deployBeta = steps.helmDeployOverSsh({
   timeoutSeconds: 600,
 });
 
-export const betaTest = step({
-  name: "beta-test",
-  description: "Checks beta serves exactly this commit's page and every local file it links.",
-  image: "alpine:3.22",
-  input: { source: Source, release: HelmRelease },
-  timeoutSeconds: 180,
-});
-
-export const deployProd = steps.helmDeployOverSsh({
+const deployProd = steps.helmDeployOverSsh({
   name: "deploy-prod",
   description: "Deploys the image to apps with Helm and checks it serves.",
   host: "oliver@bulwark-m2",
@@ -60,14 +43,6 @@ export const deployProd = steps.helmDeployOverSsh({
   chart: "helm",
   healthUrl: "http://homelab-dashboard.apps.svc.cluster.local/",
   timeoutSeconds: 600,
-});
-
-export const prodTest = step({
-  name: "prod-test",
-  description: "Read-only: prod serves this commit's page, through its Service and through the ingress at home-private.ovea.pro.",
-  image: "alpine:3.22",
-  input: { source: Source, release: HelmRelease },
-  timeoutSeconds: 180,
 });
 
 export default pipeline({
